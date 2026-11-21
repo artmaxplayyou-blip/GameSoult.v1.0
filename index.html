@@ -14,7 +14,7 @@
 html,body{height:100%}
 body{margin:0;background:var(--ink);color:var(--text);font:15px/1.45 var(--ui);overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
 #wrap{position:relative;width:100%;height:100%;overflow:hidden;background:var(--ink)}
-#game{position:absolute;inset:0;display:block;touch-action:none;cursor:crosshair}
+#game{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
 #ui{position:absolute;inset:0;pointer-events:none}
 .screen{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:16px;
   padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -105,6 +105,39 @@ h1,h2,h3{font-family:var(--px);font-weight:400;margin:0;line-height:1.35;text-wr
 .menu .btn:hover{padding-left:24px}
 .menu .btn{transition:transform .08s,border-color .08s,background .08s,padding .12s}
 @media (prefers-reduced-motion:reduce){.logo{animation:none}}
+
+/* ===== МОБИЛЬНАЯ АДАПТАЦИЯ ===== */
+html,body{overscroll-behavior:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#wrap{position:fixed;inset:0;height:100vh;height:100dvh}
+.screen{justify-content:flex-start!important;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.screen>:first-child{margin-top:auto}.screen>:last-child{margin-bottom:auto}
+.btn,.hero,.relic{touch-action:manipulation;min-height:44px}
+@media (pointer:coarse) and (max-height:520px){
+  .screen{gap:8px;padding-block:8px}
+  .menu .col{width:min(100%,340px);gap:8px}
+  .logo{font-size:clamp(16px,5vh,26px);transform:none;flex-direction:row;flex-wrap:wrap;gap:0 .5em}
+  .tag{font-size:12px;max-width:44ch}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .btn{padding:9px 10px;font-size:10px}.btn.small{padding:7px 9px}
+  .panel{padding:10px}
+  .hero canvas{width:64px!important;height:64px!important}
+  .heroes{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+  .hero{padding:8px}.hero p{font-size:11px}
+  .relics{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+  .story .txt{min-height:4em}
+  #t-fire{width:78px;height:78px}
+  #t-skill{right:calc(max(14px,env(safe-area-inset-right,0px)) + 92px);width:58px;height:58px}
+  #t-swap{bottom:calc(max(22px,env(safe-area-inset-bottom,0px)) + 92px);width:50px;height:50px}
+  #t-roll{right:calc(max(14px,env(safe-area-inset-right,0px)) + 160px);width:52px;height:52px}
+  #t-act{right:calc(max(14px,env(safe-area-inset-right,0px)) + 92px);bottom:calc(max(18px,env(safe-area-inset-bottom,0px)) + 70px)}
+}
+#rot{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:rgba(6,5,18,.96);color:var(--text);text-align:center;padding:24px;pointer-events:auto}
+#rot i{font-size:64px;font-style:normal;display:block;animation:rotp 1.6s ease-in-out infinite}
+@keyframes rotp{0%,30%{transform:rotate(0)}70%,100%{transform:rotate(-90deg)}}
+#rot b{font:400 14px/1.5 var(--px)}#rot span{color:var(--dim);max-width:30ch}
+@media (orientation:portrait){#touch:not([hidden])~#rot{display:flex}}
+#fs{position:absolute;left:max(10px,env(safe-area-inset-left,0px));bottom:10px;z-index:5;width:38px;height:38px;border-radius:8px;border:2px solid rgba(255,255,255,.4);background:rgba(20,20,60,.55);color:#fff;font-size:18px;pointer-events:auto;display:none;touch-action:manipulation}
+@media (pointer:coarse){.screen:not([hidden])~#fs{display:block}}
 </style>
 <div id="wrap">
   <canvas id="game" aria-label="Игровое поле"></canvas>
@@ -199,6 +232,8 @@ h1,h2,h3{font-family:var(--px);font-weight:400;margin:0;line-height:1.35;text-wr
     <button id="t-act" aria-label="Взять" hidden>ВЗЯТЬ</button>
     <button id="t-pause" aria-label="Пауза">II</button>
   </div>
+  <div id="rot"><i>📱</i><b>ПОВЕРНИ ТЕЛЕФОН</b><span>Игра рассчитана на горизонтальный режим — так видно всю комнату.</span></div>
+  <button id="fs" aria-label="Во весь экран">⛶</button>
 </div>
 <script>
 'use strict';
@@ -1654,7 +1689,7 @@ function drawHUD(){
   for(const t of texts){const [sx2,sy2]=w2s(t.x,t.y);ctx.globalAlpha=clamp(1.6-t.t/t.life*1.6,0,1);txt(t.s,sx2,sy2,(t.big?13:10)*u*(t.dmg?1:1.05),t.c,'center');ctx.globalAlpha=1;}
   if(P.near&&mode==='play')drawTip(P.near,u);
   // подсказка
-  if(hint&&hint.t>0){ctx.globalAlpha=clamp(hint.t,0,1);txt(hint.s,cw/2,ch-pad-62*u,11*u,'#e8e9ff','center');ctx.globalAlpha=1;}
+  if(hint&&hint.t>0){ctx.globalAlpha=clamp(hint.t,0,1);{let hs=hint.s;if(touchMode)hs=hs.replace(/нажми E/g,'нажми «ВЗЯТЬ»');const mw=cw*(touchMode?.46:.9),ws=hs.split(' '),ln=[];let c='';ctx.font='700 '+11*u+'px '+FONT_UI;for(const w of ws){if(c&&ctx.measureText(c+' '+w).width>mw){ln.push(c);c=w;}else c=c?c+' '+w:w;}ln.push(c);const hx=touchMode?cw*.5:cw/2,hy=(touchMode?ch*.5:ch-pad-62*u)-(ln.length-1)*7*u;ln.forEach((t,q)=>txt(t,hx,hy+q*14*u,11*u,'#e8e9ff','center'));}ctx.globalAlpha=1;}
   // баннер
   if(banner){
     const k=banner.t/banner.life,a=k<.12?k/.12:k>.8?(1-k)/.2:1;ctx.globalAlpha=clamp(a,0,1);
@@ -1779,9 +1814,9 @@ function drawMenuScene(t){
 function drawDps(u){
   if(!run||!run.lobby)return;const now=T;while(dps.log.length&&now-dps.log[0][0]>4)dps.log.shift();
   let sum=0;for(const l of dps.log)sum+=l[1];const cur=dps.log.length?sum/Math.min(4,Math.max(.7,now-dps.log[0][0]+.3)):0;dps.best=Math.max(dps.best,cur);
-  const w=210*u,h=46*u,x=cw/2-w/2,y=10*u;ctx.fillStyle='rgba(8,6,20,.62)';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#3d3c82';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);
-  txt('УРОН В СЕКУНДУ: '+Math.round(cur),cw/2,y+14*u,11*u,'#ffd76a','center',FONT_UI,false);
-  txt('Лучший '+Math.round(dps.best)+' · Всего '+Math.round(dps.total)+' · Ударов '+dps.hits,cw/2,y+32*u,9*u,'#c8caf5','center',FONT_UI,false);
+  const w=210*u,h=46*u,x=cw/2-w/2-(touchMode?30*u:0),y=10*u;ctx.fillStyle='rgba(8,6,20,.62)';ctx.fillRect(x,y,w,h);ctx.strokeStyle='#3d3c82';ctx.lineWidth=2;ctx.strokeRect(x,y,w,h);
+  txt('УРОН В СЕКУНДУ: '+Math.round(cur),x+w/2,y+14*u,11*u,'#ffd76a','center',FONT_UI,false);
+  txt('Лучший '+Math.round(dps.best)+' · Всего '+Math.round(dps.total)+' · Ударов '+dps.hits,x+w/2,y+32*u,9*u,'#c8caf5','center',FONT_UI,false);
 }
 /* ---- общий кадр ---- */
 function render(){
@@ -2043,7 +2078,7 @@ function lavaTick(dt){
   for(let i=R.lava.length-1;i>=0;i--){const l=R.lava[i];l.t+=dt;if(l.t>=1&&l.t<1.5&&!l.hit&&dist(P,l)<19){l.hit=true;hurtP(1,l.x,l.y);}if(l.t>1.6)R.lava.splice(i,1);}
 }
 let camX=240,camY=136,camOn=false;
-function camUpdate(){const z=1.45;camX=lerp(camX,P.x,.07);camY=lerp(camY,P.y-10,.07);scale=Math.min(cw/VW,ch/VH)*z;ox=clamp(cw/2-camX*scale,cw-VW*scale,0);oy=clamp(ch/2-camY*scale,ch-VH*scale,0);camOn=true;}
+function camUpdate(){const z=touchMode?1.15:1.45;camX=lerp(camX,P.x,.07);camY=lerp(camY,P.y-10,.07);scale=Math.min(cw/VW,ch/VH)*z;ox=VW*scale<=cw?(cw-VW*scale)/2:clamp(cw/2-camX*scale,cw-VW*scale,0);oy=VH*scale<=ch?(ch-VH*scale)/2:clamp(ch/2-camY*scale,ch-VH*scale,0);camOn=true;}
 function camOff(){if(camOn){camOn=false;resize();}}
 function drawRoomMod(){
   if(run.lobby){const gr=ctx.createLinearGradient(0,0,0,ch);gr.addColorStop(0,'rgba(8,6,28,.55)');gr.addColorStop(.35,'rgba(8,6,28,0)');gr.addColorStop(1,'rgba(8,6,28,.35)');ctx.fillStyle=gr;ctx.fillRect(0,0,cw,ch);ctx.fillStyle='rgba(255,207,90,.55)';for(let i=0;i<24;i++){const x=(i*97)%VW+Math.sin(T*.6+i)*8,y=VH-((T*(8+i%4)+i*41)%VH);ctx.fillRect(ox+x*scale,oy+y*scale,2*scale,2*scale);}return;}
@@ -2073,6 +2108,7 @@ function update(dt){
 let lastNow=0;
 function frame(now){
   requestAnimationFrame(frame);
+  if(touchMode&&mode==='play'&&innerHeight>innerWidth){lastNow=now;mouse.down=false;touchFire=false;joy.id=null;return;}
   const raw=Math.min(.05,Math.max(0,(now-lastNow)/1000||0));lastNow=now;
   T+=raw;
   if(fadeDir!==0){
@@ -2148,7 +2184,14 @@ function bindInput(){
   hold('#t-fire',()=>{touchFire=true;},()=>{touchFire=false;});
   hold('#t-skill',()=>useSkill());hold('#t-swap',()=>swapWeapon());hold('#t-roll',()=>doRoll());hold('#t-act',()=>interact());hold('#t-pause',()=>togglePause());
   if(window.matchMedia&&window.matchMedia('(pointer: coarse)').matches)touchMode=true;
-  window.addEventListener('resize',resize);
+  window.addEventListener('resize',resize);window.addEventListener('orientationchange',()=>setTimeout(resize,200));
+  if(window.visualViewport)visualViewport.addEventListener('resize',resize);
+  document.addEventListener('contextmenu',e=>e.preventDefault());
+  ['gesturestart','gesturechange'].forEach(n=>document.addEventListener(n,e=>e.preventDefault()));
+  const fsb=$('#fs'),de=document.documentElement,rq=de.requestFullscreen||de.webkitRequestFullscreen;
+  if(!rq||/iPhone|iPod/.test(navigator.userAgent))fsb.remove();
+  else fsb.addEventListener('click',()=>{if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document);}else{Promise.resolve(rq.call(de)).then(()=>{try{screen.orientation.lock('landscape').catch(()=>{});}catch(_){}}).catch(()=>{});}});
+  document.addEventListener('fullscreenchange',()=>setTimeout(resize,150));
 }
 
 /* ---- запуск ---- */
